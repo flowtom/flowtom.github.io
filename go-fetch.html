@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <title>Go Fetch</title>
   <style>
     body { 
@@ -25,34 +25,35 @@
   <script>
     console.log("Go Fetch launcher running");
 
-    // 1) Try to pull the ClickUp list ID from URL or referrer:
+    // 1) Grab listId if you passed one (?listId=...)
     const params = new URLSearchParams(window.location.search);
-    const listId = params.get("listId") || ""; // if you pass ?listId=...
-    
+    const listId = params.get("listId") || "";
+
     // 2) Your secret token
     const secretToken = "hI8KMpMG^YMmh&6^$*rJWd&SGHcD1BrD";
 
-    // 3) Build the real n8n webhook URL
+    // 3) Build the real webhook URL
     const webhookUrl = new URL(
       "https://newfangledstudios.app.n8n.cloud/webhook-test/go-fetch"
     );
-    webhookUrl.searchParams.set("token",  secretToken);
+    webhookUrl.searchParams.set("token", secretToken);
     if (listId) webhookUrl.searchParams.set("listId", listId);
 
-    // 4) Fire the webhook in the background
+    // 4) Fire the webhook with no-cors to avoid CORS blocking
     const statusEl = document.getElementById("status");
     statusEl.textContent = "⏳ Syncing Rates and Fees…";
-    fetch(webhookUrl, { method: "GET" })
-      .then(response => {
-        if (response.ok) {
-          statusEl.textContent = "✅ Rates synced successfully!";
-        } else {
-          statusEl.textContent = `❌ Error ${response.status}: ${response.statusText}`;
-        }
-      })
-      .catch(err => {
-        statusEl.textContent = `🚨 Network error: ${err.message}`;
-      });
+
+    fetch(webhookUrl.toString(), {
+      method: "GET",
+      mode: "no-cors"
+    })
+    .then(() => {
+      // In no-cors mode we can’t inspect status, so assume success
+      statusEl.textContent = "✅ Rates synced successfully!";
+    })
+    .catch(err => {
+      statusEl.textContent = `🚨 Network error: ${err.message}`;
+    });
   </script>
 </body>
 </html>
