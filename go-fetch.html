@@ -6,77 +6,73 @@
   <style>
     body {
       font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      background: #eef2f5;
+      padding: 2rem;
+      background: #f5f5f5;
     }
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
-    }
-    #status {
-      font-size: 1.2rem;
-      color: #333;
-    }
-    code {
-      background: #ddd;
-      padding: 2px 4px;
-      border-radius: 3px;
-    }
+    h1 { font-size: 2rem; }
+    #status { margin: 1rem 0; color: #333; }
+    #debug { font-size: .9rem; color: #666; background: #fff; padding: 1rem; border-radius: 4px; }
+    code { background: #eee; padding: 2px 4px; border-radius: 3px; }
   </style>
 </head>
 <body>
   <h1>🚀 Go Fetch</h1>
-  <p id="status">Preparing to sync Rates and Fees…</p>
+  <p id="status">Detecting your list…</p>
+
+  <div id="debug">
+    <strong>Raw referrer:</strong> <span id="referrer"></span><br/>
+    <strong>Extracted listId:</strong> <code id="foundId"></code>
+  </div>
 
   <script>
-    console.log("Go Fetch launcher running");
+    const statusEl   = document.getElementById("status");
+    const refEl      = document.getElementById("referrer");
+    const foundEl    = document.getElementById("foundId");
 
-    // 1) Extract the listId from the ClickUp referrer URL
+    // Show exactly what document.referrer is
+    const ref = document.referrer || "<none>";
+    refEl.textContent = ref;
+
+    // Try a couple of patterns, in case ClickUp has varied their URL structure
+    const patterns = ["/v/l/li/", "/v/list/"];
     let listId = "";
-    const ref = document.referrer || "";
-    const marker = "/v/l/li/";
-    if (ref.includes(marker)) {
-      // e.g. https://app.clickup.com/9011867537/v/l/li/901108259452
-      listId = ref.split(marker)[1].split(/[\/\?#]/)[0];
-      console.log("Extracted listId from referrer:", listId);
+
+    for (const marker of patterns) {
+      if (ref.includes(marker)) {
+        listId = ref.split(marker)[1].split(/[\/\?#]/)[0];
+        break;
+      }
     }
 
-    // 2) Override via ?listId= if you need to
+    // Also allow ?listId= override if someone passes it manually
     const params = new URLSearchParams(window.location.search);
     if (params.has("listId")) {
       listId = params.get("listId");
-      console.log("Overriding listId from query param:", listId);
     }
 
-    // 3) Your secret token
-    const secretToken = "hI8KMpMG^YMmh&6^$*rJWd&SGHcD1BrD";
+    foundEl.textContent = listId || "<not found>";
 
-    // 4) Build the n8n webhook URL
+    if (!listId) {
+      statusEl.textContent = "⚠️ Couldn’t auto-detect a listId. Click this link from inside your ClickUp list view or append ?listId=YOUR_ID.";
+      throw new Error("listId missing");
+    }
+
+    statusEl.textContent = `⏳ Syncing list ${listId}…`;
+
+    // Build and fire the webhook
+    const secretToken = "hI8KMpMG^YMmh&6^$*rJWd&SGHcD1BrD";
     const webhookUrl = new URL(
       "https://newfangledstudios.app.n8n.cloud/webhook-test/go-fetch"
     );
     webhookUrl.searchParams.set("token", secretToken);
-    if (listId) webhookUrl.searchParams.set("listId", listId);
-
-    // 5) Fire the webhook (no-cors to avoid CORS issues)
-    const statusEl = document.getElementById("status");
-    statusEl.textContent = listId
-      ? `⏳ Syncing list ${listId}…`
-      : "⏳ Syncing all tasks…";
+    webhookUrl.searchParams.set("listId", listId);
 
     fetch(webhookUrl.toString(), {
       method: "GET",
       mode: "no-cors"
     })
     .then(() => {
-      statusEl.textContent = listId
-        ? `✅ Rates synced for list ${listId}!`
-        : "✅ Rates synced!";
+      statusEl.textContent = `✅ Rates synced for list ${listId}!`;
     })
     .catch(err => {
       statusEl.textContent = `🚨 Network error: ${err.message}`;
