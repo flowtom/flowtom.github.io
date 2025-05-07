@@ -25,34 +25,21 @@
   <script>
     console.log("Go Fetch launcher running");
 
-    // 1) Try to pull the ClickUp task name from document.referrer
-    let taskLabel = "";
-    const ref = document.referrer;
-    if (ref.includes("clickup.com/t/")) {
-      const parts = ref.split("/t/")[1].split("/");
-      if (parts.length > 1) taskLabel = parts[1];
-    }
-
-    // 2) Allow overrides via query params
+    // 1) Try to pull the ClickUp list ID from URL or referrer:
     const params = new URLSearchParams(window.location.search);
-    const passedTaskId   = params.get("task_id");
-    const passedTaskName = params.get("task_name");
+    const listId = params.get("listId") || ""; // if you pass ?listId=...
     
-    const taskId   = passedTaskId   || "defaultTaskID";
-    const taskName = passedTaskName || taskLabel || "DefaultJob";
-
-    // 3) Your secret token
+    // 2) Your secret token
     const secretToken = "hI8KMpMG^YMmh&6^$*rJWd&SGHcD1BrD";
 
-    // 4) Build the webhook URL
+    // 3) Build the real n8n webhook URL
     const webhookUrl = new URL(
       "https://newfangledstudios.app.n8n.cloud/webhook-test/go-fetch"
     );
-    webhookUrl.searchParams.set("token",     secretToken);
-    webhookUrl.searchParams.set("task_id",   taskId);
-    webhookUrl.searchParams.set("task_name", taskName);
+    webhookUrl.searchParams.set("token",  secretToken);
+    if (listId) webhookUrl.searchParams.set("listId", listId);
 
-    // 5) Fire the webhook in the background
+    // 4) Fire the webhook in the background
     const statusEl = document.getElementById("status");
     statusEl.textContent = "⏳ Syncing Rates and Fees…";
     fetch(webhookUrl, { method: "GET" })
