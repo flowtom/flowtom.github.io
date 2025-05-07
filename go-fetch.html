@@ -4,18 +4,9 @@
   <meta charset="UTF-8"/>
   <title>Go Fetch</title>
   <style>
-    body { 
-      font-family: sans-serif; 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      justify-content: center; 
-      height: 100vh; 
-      margin: 0; 
-      background: #f5f5f5;
-    }
-    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-    #status { font-size: 1.2rem; color: #333; }
+    body { font-family: sans-serif; display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f5f5f5 }
+    h1 { font-size:2rem;margin-bottom:.5rem }
+    #status { font-size:1.2rem;color:#333 }
   </style>
 </head>
 <body>
@@ -25,31 +16,43 @@
   <script>
     console.log("Go Fetch launcher running");
 
-    // 1) Grab listId if you passed one (?listId=...)
-    const params = new URLSearchParams(window.location.search);
-    const listId = params.get("listId") || "";
+    // 1) Try to extract listId from referrer: look for "/v/l/li/{listId}"
+    let listId = "";
+    const ref = document.referrer;
+    const marker = "/v/l/li/";
+    if (ref.includes(marker)) {
+      // e.g. "https://app.clickup.com/9011867537/v/l/li/901108259452"
+      listId = ref.split(marker)[1].split(/[\/\?#]/)[0];
+      console.log("Extracted listId from referrer:", listId);
+    }
 
-    // 2) Your secret token
+    // 2) Override via ?listId= in URL if present
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("listId")) {
+      listId = params.get("listId");
+      console.log("Overriding listId from query param:", listId);
+    }
+
+    // 3) Your secret token
     const secretToken = "hI8KMpMG^YMmh&6^$*rJWd&SGHcD1BrD";
 
-    // 3) Build the real webhook URL
+    // 4) Build the n8n webhook URL
     const webhookUrl = new URL(
       "https://newfangledstudios.app.n8n.cloud/webhook-test/go-fetch"
     );
     webhookUrl.searchParams.set("token", secretToken);
     if (listId) webhookUrl.searchParams.set("listId", listId);
 
-    // 4) Fire the webhook with no-cors to avoid CORS blocking
+    // 5) Fire the webhook in the background (no-cors so we don’t need CORS headers)
     const statusEl = document.getElementById("status");
-    statusEl.textContent = "⏳ Syncing Rates and Fees…";
+    statusEl.textContent = "⏳ Syncing Rates and Fees for list " + listId + "…";
 
     fetch(webhookUrl.toString(), {
       method: "GET",
       mode: "no-cors"
     })
     .then(() => {
-      // In no-cors mode we can’t inspect status, so assume success
-      statusEl.textContent = "✅ Rates synced successfully!";
+      statusEl.textContent = "✅ Rates synced successfully for list " + listId + "!";
     })
     .catch(err => {
       statusEl.textContent = `🚨 Network error: ${err.message}`;
