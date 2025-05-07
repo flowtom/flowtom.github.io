@@ -4,9 +4,29 @@
   <meta charset="UTF-8"/>
   <title>Go Fetch</title>
   <style>
-    body { font-family: sans-serif; display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f5f5f5 }
-    h1 { font-size:2rem;margin-bottom:.5rem }
-    #status { font-size:1.2rem;color:#333 }
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: #eef2f5;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    #status {
+      font-size: 1.2rem;
+      color: #333;
+    }
+    code {
+      background: #ddd;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
   </style>
 </head>
 <body>
@@ -16,17 +36,17 @@
   <script>
     console.log("Go Fetch launcher running");
 
-    // 1) Try to extract listId from referrer: look for "/v/l/li/{listId}"
+    // 1) Extract the listId from the ClickUp referrer URL
     let listId = "";
-    const ref = document.referrer;
+    const ref = document.referrer || "";
     const marker = "/v/l/li/";
     if (ref.includes(marker)) {
-      // e.g. "https://app.clickup.com/9011867537/v/l/li/901108259452"
+      // e.g. https://app.clickup.com/9011867537/v/l/li/901108259452
       listId = ref.split(marker)[1].split(/[\/\?#]/)[0];
       console.log("Extracted listId from referrer:", listId);
     }
 
-    // 2) Override via ?listId= in URL if present
+    // 2) Override via ?listId= if you need to
     const params = new URLSearchParams(window.location.search);
     if (params.has("listId")) {
       listId = params.get("listId");
@@ -43,16 +63,20 @@
     webhookUrl.searchParams.set("token", secretToken);
     if (listId) webhookUrl.searchParams.set("listId", listId);
 
-    // 5) Fire the webhook in the background (no-cors so we don’t need CORS headers)
+    // 5) Fire the webhook (no-cors to avoid CORS issues)
     const statusEl = document.getElementById("status");
-    statusEl.textContent = "⏳ Syncing Rates and Fees for list " + listId + "…";
+    statusEl.textContent = listId
+      ? `⏳ Syncing list ${listId}…`
+      : "⏳ Syncing all tasks…";
 
     fetch(webhookUrl.toString(), {
       method: "GET",
       mode: "no-cors"
     })
     .then(() => {
-      statusEl.textContent = "✅ Rates synced successfully for list " + listId + "!";
+      statusEl.textContent = listId
+        ? `✅ Rates synced for list ${listId}!`
+        : "✅ Rates synced!";
     })
     .catch(err => {
       statusEl.textContent = `🚨 Network error: ${err.message}`;
