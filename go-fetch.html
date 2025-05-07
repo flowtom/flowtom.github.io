@@ -3,12 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <title>Go Fetch</title>
+  <style>
+    body { 
+      font-family: sans-serif; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      height: 100vh; 
+      margin: 0; 
+      background: #f5f5f5;
+    }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    #status { font-size: 1.2rem; color: #333; }
+  </style>
 </head>
 <body>
   <h1>🚀 Go Fetch</h1>
-  <p>Syncing Rates and Fees</p>
+  <p id="status">Preparing to sync Rates and Fees…</p>
+
   <script>
-    console.log("Go Fetch script running");
+    console.log("Go Fetch launcher running");
 
     // 1) Try to pull the ClickUp task name from document.referrer
     let taskLabel = "";
@@ -26,10 +41,10 @@
     const taskId   = passedTaskId   || "defaultTaskID";
     const taskName = passedTaskName || taskLabel || "DefaultJob";
 
-    // 3) Your secret token (to prevent unauthorized calls)
+    // 3) Your secret token
     const secretToken = "hI8KMpMG^YMmh&6^$*rJWd&SGHcD1BrD";
 
-    // 4) Build the GET to your n8n webhook
+    // 4) Build the webhook URL
     const webhookUrl = new URL(
       "https://newfangledstudios.app.n8n.cloud/webhook-test/go-fetch"
     );
@@ -37,9 +52,20 @@
     webhookUrl.searchParams.set("task_id",   taskId);
     webhookUrl.searchParams.set("task_name", taskName);
 
-    // 5) Redirect to fire the webhook
-    window.location.href = webhookUrl.toString();
+    // 5) Fire the webhook in the background
+    const statusEl = document.getElementById("status");
+    statusEl.textContent = "⏳ Syncing Rates and Fees…";
+    fetch(webhookUrl, { method: "GET" })
+      .then(response => {
+        if (response.ok) {
+          statusEl.textContent = "✅ Rates synced successfully!";
+        } else {
+          statusEl.textContent = `❌ Error ${response.status}: ${response.statusText}`;
+        }
+      })
+      .catch(err => {
+        statusEl.textContent = `🚨 Network error: ${err.message}`;
+      });
   </script>
 </body>
 </html>
-
