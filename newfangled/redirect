@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LucidLink Launcher</title>
+    <script>
+      // as soon as the page loads, grab the fragment and redirect
+      window.addEventListener('DOMContentLoaded', () => {
+        const target = decodeURIComponent(location.hash.slice(1));
+        if (target) {
+          window.location.href = target;
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <p>
+      If you’re not automatically redirected,
+      <a id="fallback" href="#">click here</a>.
+    </p>
+    <script>
+      // update the fallback link so people can still click
+      const target = decodeURIComponent(location.hash.slice(1));
+      if (target) {
+        const a = document.getElementById('fallback');
+        a.href = target;
+        a.textContent = target;
+      }
+    </script>
+  </body>
+</html>
